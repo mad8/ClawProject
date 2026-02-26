@@ -90,25 +90,22 @@ Le serveur écoute sur `http://0.0.0.0:8000`.
 | `GITLAB_URL` | URL de votre instance GitLab | `https://gitlab.com` |
 | `GITLAB_TOKEN` | Personal Access Token GitLab | *requis* |
 | `GITLAB_WEBHOOK_SECRET` | Secret du webhook (optionnel mais recommandé) | `` |
-| `AI_API_URL` | URL de l'API IA (compatible OpenAI) | `https://api.openai.com/v1` |
-| `AI_API_KEY` | Clé API du fournisseur IA | *requis* |
-| `AI_MODEL` | Modèle à utiliser | `gpt-4o` |
+| `ANTHROPIC_API_KEY` | Clé API Anthropic | *requis* |
+| `AI_MODEL` | Modèle Claude à utiliser | `claude-opus-4-20250514` |
 | `IEYES_HOST` | Adresse d'écoute | `0.0.0.0` |
 | `IEYES_PORT` | Port d'écoute | `8000` |
 | `MAX_DIFF_SIZE` | Taille max du diff envoyé à l'IA (caractères) | `50000` |
-| `REVIEW_LANGUAGE` | Langue des commentaires (`fr` / `en`) | `fr` |
+| `MAX_TOKENS` | Tokens max pour la réponse IA | `8192` |
 
-### Fournisseurs IA compatibles
+### Modèles Claude supportés
 
-Tout fournisseur exposant une API compatible OpenAI `/v1/chat/completions` :
+| Modèle | ID |
+|---|---|
+| Claude Opus 5 (recommandé) | `claude-opus-4-20250514` |
+| Claude Sonnet 4 | `claude-sonnet-4-20250514` |
+| Claude Haiku | `claude-haiku-4-20250414` |
 
-| Fournisseur | `AI_API_URL` | `AI_MODEL` |
-|---|---|---|
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o` |
-| Anthropic (via proxy) | `https://api.anthropic.com/v1` | `claude-sonnet-4-20250514` |
-| Azure OpenAI | `https://<endpoint>.openai.azure.com` | `gpt-4o` |
-| Ollama (local) | `http://localhost:11434/v1` | `llama3` |
-| LM Studio (local) | `http://localhost:1234/v1` | `local-model` |
+Utilise le **SDK officiel Anthropic** (`anthropic` Python package).
 
 ---
 

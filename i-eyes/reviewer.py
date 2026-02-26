@@ -1,13 +1,13 @@
 """
 I-Eyes AI Code Reviewer
-Analyses diffs and produces structured review comments.
+Uses Anthropic Claude SDK for structured code review.
 """
 
 import json
 import logging
 from dataclasses import dataclass, field
 
-import requests
+import anthropic
 
 from config import Config
 
@@ -66,8 +66,7 @@ class ReviewResult:
 
 class AIReviewer:
     def __init__(self):
-        self.api_url = Config.AI_API_URL.rstrip("/")
-        self.api_key = Config.AI_API_KEY
+        self.client = anthropic.Anthropic(api_key=Config.ANTHROPIC_API_KEY)
         self.model = Config.AI_MODEL
 
     def _build_diff_prompt(self, diffs: list[dict], mr_title: str, mr_description: str) -> str:
@@ -89,29 +88,20 @@ class AIReviewer:
 
     def review(self, diffs: list[dict], mr_title: str, mr_description: str = "") -> ReviewResult:
         prompt = self._build_diff_prompt(diffs, mr_title, mr_description)
-        logger.info("Sending review request to AI (%d chars of diff)", len(prompt))
+        logger.info("Sending review request to Claude %s (%d chars of diff)", self.model, len(prompt))
 
         try:
-            resp = requests.post(
-                f"{self.api_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "temperature": 0.2,
-                    "max_tokens": 4096,
-                },
-                timeout=120,
+            message = self.client.messages.create(
+                model=self.model,
+                max_tokens=Config.MAX_TOKENS,
+                temperature=0.2,
+                system=SYSTEM_PROMPT,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
             )
-            resp.raise_for_status()
-            data = resp.json()
-            content = data["choices"][0]["message"]["content"]
+
+            content = message.content[0].text
 
             # Parse JSON from response (handle markdown code blocks)
             clean = content.strip()
@@ -129,6 +119,15 @@ class AIReviewer:
                 )
                 for c in result.get("comments", [])
             ]
+
+            logger.info(
+                "Review complete — severity=%s, %d comment(s), tokens in=%d out=%d",
+                result.get("severity", "?"),
+                len(comments),
+                message.usage.input_tokens,
+                message.usage.output_tokens,
+            )
+
             return ReviewResult(
                 summary=result.get("summary", ""),
                 severity=result.get("severity", "info"),
@@ -136,11 +135,17 @@ class AIReviewer:
                 raw_response=content,
             )
 
-        except (requests.RequestException, json.JSONDecodeError, KeyError) as e:
-            logger.error("AI review failed: %s", e)
+        except anthropic.APIError as e:
+            logger.error("Anthropic API error: %s", e)
             return ReviewResult(
-                summary=f"⚠️ I-Eyes n'a pas pu analyser cette MR : {e}",
+                summary=f"⚠️ I-Eyes — Erreur API Anthropic : {e.message}",
                 severity="warning",
-                comments=[],
+                raw_response=str(e),
+            )
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            logger.error("Failed to parse AI response: %s", e)
+            return ReviewResult(
+                summary=f"⚠️ I-Eyes n'a pas pu parser la réponse de l'IA : {e}",
+                severity="warning",
                 raw_response=str(e),
             )
