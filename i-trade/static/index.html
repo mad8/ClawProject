@@ -85,13 +85,52 @@
         .alert-item.blocked { border-left-color: #c9a227; }
         .alert-time { font-size: 11px; color: #555; }
 
-        /* Responsive */
-        @media (max-width: 768px) {
+        /* Table responsive */
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrap table { min-width: 700px; }
+
+        /* Responsive - Tablet */
+        @media (max-width: 1024px) {
             .cards { grid-template-columns: repeat(2, 1fr); }
-            .breakdown { grid-template-columns: 1fr; }
-            .nav { padding: 0 15px; }
-            .page { padding: 15px; }
-            .nav-tab { padding: 10px 14px; font-size: 12px; }
+            .breakdown { grid-template-columns: repeat(3, 1fr); }
+            .nav-tab { padding: 8px 14px; font-size: 12px; letter-spacing: 0.5px; }
+            .nav-logo { font-size: 18px; margin-right: 20px; }
+        }
+
+        /* Responsive - Mobile */
+        @media (max-width: 768px) {
+            .nav { flex-wrap: wrap; height: auto; padding: 10px 15px; gap: 8px; }
+            .nav-logo { font-size: 18px; margin-right: auto; }
+            .nav-tabs { order: 3; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+            .nav-tabs::-webkit-scrollbar { display: none; }
+            .nav-tab { padding: 8px 14px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+            .nav-status { order: 2; font-size: 11px; }
+            .nav-status #statusText { display: none; }
+            .page { padding: 12px; }
+            .cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .card { padding: 12px; }
+            .card-value { font-size: 20px; }
+            .card-label { font-size: 10px; }
+            .card-sub { font-size: 11px; }
+            .breakdown { grid-template-columns: 1fr; gap: 10px; }
+            .breakdown-card { padding: 12px; }
+            .breakdown-value { font-size: 18px; }
+            .section { padding: 12px; }
+            .section-title { font-size: 14px; }
+            th { font-size: 10px; padding: 8px 6px; }
+            td { font-size: 12px; padding: 8px 6px; }
+            .signal-chip, .redflag-chip { font-size: 10px; padding: 1px 5px; }
+            .strat-tag { font-size: 10px; }
+            .alert-item { font-size: 12px; padding: 8px 10px; }
+            .score-dot { width: 10px; height: 10px; }
+        }
+
+        /* Responsive - Small mobile */
+        @media (max-width: 480px) {
+            .cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .card { padding: 10px; }
+            .card-value { font-size: 18px; }
+            .nav-tab { padding: 6px 10px; font-size: 10px; }
         }
     </style>
 </head>
@@ -191,6 +230,7 @@
             <div class="section-title">Positions ouvertes</div>
             <span class="badge badge-green" id="openBadge">0</span>
         </div>
+        <div class="table-wrap">
         <table>
             <thead>
                 <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Prix actuel</th><th>Size</th><th>PnL</th><th>Durée</th></tr>
@@ -199,6 +239,7 @@
                 <tr><td colspan="9" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>
             </tbody>
         </table>
+        </div>
     </div>
 
     <div class="section">
@@ -206,6 +247,7 @@
             <div class="section-title">Historique des trades</div>
             <span class="badge badge-blue" id="closedBadge">0</span>
         </div>
+        <div class="table-wrap">
         <table>
             <thead>
                 <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Sortie</th><th>PnL</th><th>PnL %</th><th>Raison</th></tr>
@@ -214,6 +256,7 @@
                 <tr><td colspan="9" style="color:#555;text-align:center;">Aucun trade clôturé</td></tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
@@ -243,6 +286,7 @@
             <div class="section-title">🔍 Watchlist — Smart Money & Memecoins</div>
             <span class="badge badge-yellow" id="watchlistBadge">0</span>
         </div>
+        <div class="table-wrap">
         <table>
             <thead>
                 <tr><th>Coin</th><th>Score</th><th>Prix</th><th>Volume 24h</th><th>Vol. Ratio</th><th>Funding</th><th>Signaux</th><th>Red Flags</th><th>Détecté</th></tr>
@@ -251,6 +295,7 @@
                 <tr><td colspan="9" style="color:#555;text-align:center;">Scanner en cours d'initialisation...</td></tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
@@ -260,6 +305,7 @@
         <div class="section-header">
             <div class="section-title">💰 Funding Rates — Opportunités d'arbitrage</div>
         </div>
+        <div class="table-wrap">
         <table>
             <thead>
                 <tr><th>Coin</th><th>Prix</th><th>Funding 8h</th><th>Annualisé</th><th>Volume 24h</th><th>Open Interest</th><th>Signal</th></tr>
@@ -268,6 +314,7 @@
                 <tr><td colspan="7" style="color:#555;text-align:center;">Chargement...</td></tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
