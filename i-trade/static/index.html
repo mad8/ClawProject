@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I-Trade 💀 Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0a0f; color: #e0e0e0; }
+
+        /* Nav */
+        .nav { background: #111118; border-bottom: 2px solid #c9a227; display: flex; align-items: center; padding: 0 30px; height: 60px; }
+        .nav-logo { font-size: 22px; font-weight: 700; color: #c9a227; margin-right: 40px; }
+        .nav-logo span { color: #fff; }
+        .nav-tabs { display: flex; gap: 5px; }
+        .nav-tab { padding: 10px 24px; cursor: pointer; color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid transparent; transition: all 0.3s; }
+        .nav-tab:hover { color: #ccc; }
+        .nav-tab.active { color: #c9a227; border-bottom-color: #c9a227; }
+        .nav-status { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+        .status-dot.paused { background: #ef4444; animation: none; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Layout */
+        .page { display: none; padding: 25px 30px; }
+        .page.active { display: block; }
+
+        /* Cards */
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .card { background: #13131d; border: 1px solid #1e1e2e; border-radius: 10px; padding: 18px; }
+        .card-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .card-value { font-size: 26px; font-weight: 700; }
+        .card-sub { font-size: 12px; color: #888; margin-top: 4px; }
+        .positive { color: #22c55e; }
+        .negative { color: #ef4444; }
+        .neutral { color: #c9a227; }
+
+        /* Tables */
+        .section { background: #13131d; border: 1px solid #1e1e2e; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .section-title { font-size: 16px; font-weight: 600; color: #fff; }
+        .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .badge-yellow { background: rgba(201,162,39,0.15); color: #c9a227; }
+        .badge-blue { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 12px; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1e1e2e; }
+        td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #111118; }
+        tr:hover { background: rgba(201,162,39,0.03); }
+
+        /* Strategy tags */
+        .strat-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .strat-momentum { background: rgba(59,130,246,0.2); color: #60a5fa; }
+        .strat-memecoin { background: rgba(168,85,247,0.2); color: #c084fc; }
+        .strat-funding { background: rgba(34,197,94,0.2); color: #4ade80; }
+
+        /* Score bar */
+        .score-bar { display: flex; gap: 3px; }
+        .score-dot { width: 14px; height: 14px; border-radius: 3px; background: #1e1e2e; }
+        .score-dot.filled { background: #c9a227; }
+        .score-dot.filled.high { background: #22c55e; }
+        .score-dot.filled.low { background: #ef4444; }
+
+        /* Signal chips */
+        .signal-chip { display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 4px; font-size: 11px; background: rgba(201,162,39,0.1); color: #c9a227; }
+        .redflag-chip { display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 4px; font-size: 11px; background: rgba(239,68,68,0.1); color: #ef4444; }
+
+        /* Charts placeholder */
+        .chart-container { height: 200px; background: #0d0d15; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #333; font-size: 14px; margin-top: 15px; position: relative; overflow: hidden; }
+        .equity-bar { position: absolute; bottom: 0; background: linear-gradient(to top, rgba(201,162,39,0.3), rgba(201,162,39,0.05)); transition: all 0.5s; }
+
+        /* Strategy breakdown */
+        .breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+        .breakdown-card { background: #0d0d15; border-radius: 8px; padding: 15px; text-align: center; }
+        .breakdown-title { font-size: 12px; color: #888; margin-bottom: 8px; }
+        .breakdown-value { font-size: 20px; font-weight: 700; }
+
+        /* Alert feed */
+        .alert-feed { max-height: 300px; overflow-y: auto; }
+        .alert-item { padding: 10px 12px; border-left: 3px solid #1e1e2e; margin-bottom: 8px; background: #0d0d15; border-radius: 0 6px 6px 0; font-size: 13px; }
+        .alert-item.open { border-left-color: #22c55e; }
+        .alert-item.close { border-left-color: #ef4444; }
+        .alert-item.blocked { border-left-color: #c9a227; }
+        .alert-time { font-size: 11px; color: #555; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cards { grid-template-columns: repeat(2, 1fr); }
+            .breakdown { grid-template-columns: 1fr; }
+            .nav { padding: 0 15px; }
+            .page { padding: 15px; }
+            .nav-tab { padding: 10px 14px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <div class="nav-logo">I-<span>Trade</span> 💀</div>
+    <div class="nav-tabs">
+        <div class="nav-tab active" onclick="switchTab('overview')">📊 Overview</div>
+        <div class="nav-tab" onclick="switchTab('trades')">📈 Trades</div>
+        <div class="nav-tab" onclick="switchTab('scanner')">🔍 Scanner</div>
+        <div class="nav-tab" onclick="switchTab('funding')">💰 Funding</div>
+    </div>
+    <div class="nav-status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecté</span>
+    </div>
+</nav>
+
+<!-- ═══ OVERVIEW ═══ -->
+<div id="page-overview" class="page active">
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Balance</div>
+            <div class="card-value" id="balance">$1,000.00</div>
+            <div class="card-sub" id="balanceSub">Capital initial: $1,000</div>
+        </div>
+        <div class="card">
+            <div class="card-label">PnL Total</div>
+            <div class="card-value" id="totalPnl">$0.00</div>
+            <div class="card-sub" id="totalPnlPct">0.00%</div>
+        </div>
+        <div class="card">
+            <div class="card-label">PnL du jour</div>
+            <div class="card-value" id="dailyPnl">$0.00</div>
+            <div class="card-sub">Limite: -$50/jour</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Win Rate</div>
+            <div class="card-value neutral" id="winRate">0%</div>
+            <div class="card-sub" id="winRateSub">0 trades</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Profit Factor</div>
+            <div class="card-value neutral" id="profitFactor">0</div>
+            <div class="card-sub">Objectif: > 1.5</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Drawdown</div>
+            <div class="card-value" id="drawdown">$0.00</div>
+            <div class="card-sub" id="drawdownSub">Max: $150</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Positions ouvertes</div>
+            <div class="card-value neutral" id="openCount">0</div>
+            <div class="card-sub" id="investedSub">$0 investis</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Cash disponible</div>
+            <div class="card-value" id="cashAvail">$1,000.00</div>
+            <div class="card-sub" id="cashRatio">100% cash</div>
+        </div>
+    </div>
+
+    <div class="breakdown">
+        <div class="breakdown-card">
+            <div class="breakdown-title">🔵 Momentum Breakout</div>
+            <div class="breakdown-value" id="stratMomentum">$0</div>
+            <div class="card-sub" id="stratMomentumSub">0 trades</div>
+        </div>
+        <div class="breakdown-card">
+            <div class="breakdown-title">🟣 Memecoins / Smart Money</div>
+            <div class="breakdown-value" id="stratMemecoin">$0</div>
+            <div class="card-sub" id="stratMemecoinSub">0 trades</div>
+        </div>
+        <div class="breakdown-card">
+            <div class="breakdown-title">🟢 Funding Arbitrage</div>
+            <div class="breakdown-value" id="stratFunding">$0</div>
+            <div class="card-sub" id="stratFundingSub">0 trades</div>
+        </div>
+    </div>
+
+    <div class="section" style="margin-top: 20px;">
+        <div class="section-header">
+            <div class="section-title">📢 Dernières alertes</div>
+        </div>
+        <div class="alert-feed" id="alertFeed">
+            <div class="alert-item" style="border-left-color: #333; color: #555;">En attente de données...</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TRADES ═══ -->
+<div id="page-trades" class="page">
+    <div class="section">
+        <div class="section-header">
+            <div class="section-title">Positions ouvertes</div>
+            <span class="badge badge-green" id="openBadge">0</span>
+        </div>
+        <table>
+            <thead>
+                <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Prix actuel</th><th>Size</th><th>PnL</th><th>Durée</th></tr>
+            </thead>
+            <tbody id="openTradesBody">
+                <tr><td colspan="9" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <div class="section-title">Historique des trades</div>
+            <span class="badge badge-blue" id="closedBadge">0</span>
+        </div>
+        <table>
+            <thead>
+                <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Sortie</th><th>PnL</th><th>PnL %</th><th>Raison</th></tr>
+            </thead>
+            <tbody id="closedTradesBody">
+                <tr><td colspan="9" style="color:#555;text-align:center;">Aucun trade clôturé</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══ SCANNER ═══ -->
+<div id="page-scanner" class="page">
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Alertes 24h</div>
+            <div class="card-value neutral" id="scanAlerts">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Score élevé (3+)</div>
+            <div class="card-value positive" id="scanHigh">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Nouveaux listings</div>
+            <div class="card-value" id="scanNew" style="color:#a78bfa;">0</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Tokens surveillés</div>
+            <div class="card-value" id="scanTotal" style="color:#fff;">0</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-header">
+            <div class="section-title">🔍 Watchlist — Smart Money & Memecoins</div>
+            <span class="badge badge-yellow" id="watchlistBadge">0</span>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Coin</th><th>Score</th><th>Prix</th><th>Volume 24h</th><th>Vol. Ratio</th><th>Funding</th><th>Signaux</th><th>Red Flags</th><th>Détecté</th></tr>
+            </thead>
+            <tbody id="watchlistBody">
+                <tr><td colspan="9" style="color:#555;text-align:center;">Scanner en cours d'initialisation...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ═══ FUNDING ═══ -->
+<div id="page-funding" class="page">
+    <div class="section">
+        <div class="section-header">
+            <div class="section-title">💰 Funding Rates — Opportunités d'arbitrage</div>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Coin</th><th>Prix</th><th>Funding 8h</th><th>Annualisé</th><th>Volume 24h</th><th>Open Interest</th><th>Signal</th></tr>
+            </thead>
+            <tbody id="fundingBody">
+                <tr><td colspan="7" style="color:#555;text-align:center;">Chargement...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// ── Tab switching ──────────────────────────────────────────────
+function switchTab(tab) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + tab).classList.add('active');
+    event.target.classList.add('active');
+    if (tab === 'funding') loadFunding();
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+const fmt = (n) => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : n.toFixed(2);
+const fmtUsd = (n) => '$' + fmt(Math.abs(n));
+const pnlClass = (n) => n > 0 ? 'positive' : n < 0 ? 'negative' : 'neutral';
+const stratClass = (s) => 'strat-tag strat-' + s;
+const timeAgo = (ts) => {
+    const s = Math.floor((Date.now()/1000) - ts);
+    if (s < 60) return s + 's';
+    if (s < 3600) return Math.floor(s/60) + 'min';
+    if (s < 86400) return Math.floor(s/3600) + 'h';
+    return Math.floor(s/86400) + 'j';
+};
+const duration = (start) => {
+    const s = Math.floor((Date.now()/1000) - start);
+    const h = Math.floor(s/3600);
+    const m = Math.floor((s%3600)/60);
+    return h > 0 ? h+'h '+m+'m' : m+'m';
+};
+
+// ── Update functions ───────────────────────────────────────────
+let currentPrices = {};
+let alertHistory = [];
+
+function updateOverview(stats) {
+    document.getElementById('balance').textContent = '$' + stats.balance.toFixed(2);
+    document.getElementById('balanceSub').textContent = 'Capital initial: $' + stats.initial_balance;
+
+    const pnlEl = document.getElementById('totalPnl');
+    pnlEl.textContent = (stats.total_pnl >= 0 ? '+$' : '-$') + Math.abs(stats.total_pnl).toFixed(2);
+    pnlEl.className = 'card-value ' + pnlClass(stats.total_pnl);
+
+    const pnlPct = document.getElementById('totalPnlPct');
+    pnlPct.textContent = (stats.total_pnl_pct >= 0 ? '+' : '') + stats.total_pnl_pct.toFixed(2) + '%';
+    pnlPct.className = 'card-sub ' + pnlClass(stats.total_pnl_pct);
+
+    const daily = document.getElementById('dailyPnl');
+    daily.textContent = (stats.daily_pnl_today >= 0 ? '+$' : '-$') + Math.abs(stats.daily_pnl_today).toFixed(2);
+    daily.className = 'card-value ' + pnlClass(stats.daily_pnl_today);
+
+    document.getElementById('winRate').textContent = stats.win_rate + '%';
+    document.getElementById('winRateSub').textContent = stats.closed_trades + ' trades clôturés';
+
+    document.getElementById('profitFactor').textContent = stats.profit_factor === Infinity ? '∞' : stats.profit_factor;
+
+    const dd = document.getElementById('drawdown');
+    dd.textContent = '$' + stats.drawdown.toFixed(2);
+    dd.className = 'card-value ' + (stats.drawdown > 100 ? 'negative' : stats.drawdown > 50 ? 'neutral' : 'positive');
+    document.getElementById('drawdownSub').textContent = stats.drawdown_pct.toFixed(1) + '% | Max: $150';
+
+    document.getElementById('openCount').textContent = stats.open_trades;
+    document.getElementById('investedSub').textContent = '$' + stats.total_invested.toFixed(0) + ' investis';
+    document.getElementById('cashAvail').textContent = '$' + stats.cash_available.toFixed(2);
+    document.getElementById('cashRatio').textContent = stats.cash_ratio + '% cash';
+
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (stats.paused) { dot.classList.add('paused'); txt.textContent = stats.pause_reason; }
+    else { dot.classList.remove('paused'); txt.textContent = 'Actif — Paper Trading'; }
+
+    // Strategy breakdown
+    const sb = stats.strategy_breakdown || {};
+    for (const [key, data] of Object.entries(sb)) {
+        const el = document.getElementById('strat' + key.charAt(0).toUpperCase() + key.slice(1));
+        const sub = document.getElementById('strat' + key.charAt(0).toUpperCase() + key.slice(1) + 'Sub');
+        if (el) {
+            el.textContent = (data.pnl >= 0 ? '+$' : '-$') + Math.abs(data.pnl).toFixed(2);
+            el.className = 'breakdown-value ' + pnlClass(data.pnl);
+        }
+        if (sub) sub.textContent = data.trades + ' trades | WR: ' + data.win_rate + '%';
+    }
+}
+
+function updateOpenTrades(trades) {
+    const body = document.getElementById('openTradesBody');
+    document.getElementById('openBadge').textContent = trades.length;
+    if (!trades.length) {
+        body.innerHTML = '<tr><td colspan="9" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>';
+        return;
+    }
+    body.innerHTML = trades.map(t => {
+        const curPrice = currentPrices[t.coin] || t.entry_price;
+        const pnlPct = t.side === 'long'
+            ? ((curPrice - t.entry_price) / t.entry_price * 100)
+            : ((t.entry_price - curPrice) / t.entry_price * 100);
+        const pnl = t.size_usdc * (t.remaining_size_pct/100) * (pnlPct/100);
+        return `<tr>
+            <td>${t.id}</td>
+            <td><strong>${t.coin}</strong></td>
+            <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
+            <td>${t.side.toUpperCase()}</td>
+            <td>$${t.entry_price.toFixed(4)}</td>
+            <td>$${curPrice.toFixed(4)}</td>
+            <td>$${t.size_usdc.toFixed(0)}</td>
+            <td class="${pnlClass(pnl)}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct.toFixed(1)}%)</td>
+            <td>${duration(t.entry_time)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function updateClosedTrades(trades) {
+    const body = document.getElementById('closedTradesBody');
+    document.getElementById('closedBadge').textContent = trades.length;
+    if (!trades.length) {
+        body.innerHTML = '<tr><td colspan="9" style="color:#555;text-align:center;">Aucun trade clôturé</td></tr>';
+        return;
+    }
+    body.innerHTML = trades.slice().reverse().map(t => `<tr>
+        <td>${t.id}</td>
+        <td><strong>${t.coin}</strong></td>
+        <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
+        <td>${t.side.toUpperCase()}</td>
+        <td>$${t.entry_price.toFixed(4)}</td>
+        <td>$${t.exit_price.toFixed(4)}</td>
+        <td class="${pnlClass(t.pnl)}">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</td>
+        <td class="${pnlClass(t.pnl_pct)}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct.toFixed(1)}%</td>
+        <td>${t.close_reason || '-'}</td>
+    </tr>`).join('');
+}
+
+function updateWatchlist(list) {
+    const body = document.getElementById('watchlistBody');
+    document.getElementById('watchlistBadge').textContent = list.length;
+    if (!list.length) {
+        body.innerHTML = '<tr><td colspan="9" style="color:#555;text-align:center;">Aucun token détecté</td></tr>';
+        return;
+    }
+    body.innerHTML = list.map(a => {
+        const scoreDots = Array(5).fill(0).map((_, i) =>
+            `<div class="score-dot ${i < a.score ? (a.score >= 4 ? 'filled high' : a.score >= 2 ? 'filled' : 'filled low') : ''}"></div>`
+        ).join('');
+        const signals = a.signals.map(s => `<span class="signal-chip">${s}</span>`).join('');
+        const flags = a.red_flags.map(f => `<span class="redflag-chip">${f}</span>`).join('') || '-';
+        const fundingAnn = (a.funding_rate * 3 * 365 * 100).toFixed(0);
+        return `<tr>
+            <td><strong>${a.coin}</strong>${a.is_new_listing ? ' 🆕' : ''}</td>
+            <td><div class="score-bar">${scoreDots}</div></td>
+            <td>$${a.price.toFixed(4)}</td>
+            <td>${fmt(a.volume_24h)}</td>
+            <td>${a.volume_ratio ? 'x' + a.volume_ratio : '-'}</td>
+            <td class="${Math.abs(fundingAnn) > 50 ? 'neutral' : ''}">${fundingAnn}%</td>
+            <td>${signals}</td>
+            <td>${flags}</td>
+            <td>${timeAgo(a.detected_at)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function updateScannerStats(stats) {
+    document.getElementById('scanAlerts').textContent = stats.total_alerts_24h || 0;
+    document.getElementById('scanHigh').textContent = stats.high_score_alerts || 0;
+    document.getElementById('scanNew').textContent = stats.new_listings_24h || 0;
+    document.getElementById('scanTotal').textContent = stats.known_coins || 0;
+}
+
+function addAlerts(alerts) {
+    if (!alerts || !alerts.length) return;
+    alertHistory = [...alerts, ...alertHistory].slice(0, 50);
+    const feed = document.getElementById('alertFeed');
+    feed.innerHTML = alertHistory.map(a => {
+        const type = a.type || 'info';
+        const time = new Date(a.time * 1000).toLocaleTimeString('fr-FR');
+        let text = '';
+        if (type === 'open') text = `🟢 OPEN ${a.trade.side.toUpperCase()} ${a.trade.coin} @ $${a.trade.entry_price.toFixed(4)} | $${a.trade.size_usdc} | ${a.trade.strategy}`;
+        else if (type === 'close') text = `🔴 CLOSE ${a.trade.coin} | ${a.trade.close_reason} | PnL: $${a.trade.pnl.toFixed(2)}`;
+        else if (type === 'blocked') text = `⚠️ BLOCKED ${a.coin} — ${a.reason}`;
+        else text = JSON.stringify(a);
+        return `<div class="alert-item ${type}"><span class="alert-time">${time}</span> ${text}</div>`;
+    }).join('');
+}
+
+// ── Funding page ───────────────────────────────────────────────
+async function loadFunding() {
+    try {
+        const resp = await fetch('/api/funding');
+        const data = await resp.json();
+        const body = document.getElementById('fundingBody');
+        body.innerHTML = data.map(r => {
+            const ann = r.funding_annualized.toFixed(0);
+            const signal = Math.abs(r.funding_annualized) > 50
+                ? (r.funding_annualized > 0 ? '🔴 SHORT' : '🟢 LONG')
+                : '-';
+            return `<tr>
+                <td><strong>${r.coin}</strong></td>
+                <td>$${r.mark_price.toFixed(4)}</td>
+                <td class="${pnlClass(-r.funding_rate)}">${(r.funding_rate * 100).toFixed(4)}%</td>
+                <td class="${Math.abs(ann) > 50 ? 'neutral' : ''}">${ann}%</td>
+                <td>${fmt(r.volume_24h)}</td>
+                <td>${fmt(r.open_interest)}</td>
+                <td>${signal}</td>
+            </tr>`;
+        }).join('');
+    } catch(e) { console.error('Funding load error', e); }
+}
+
+// ── WebSocket ──────────────────────────────────────────────────
+let ws;
+function connect() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host + '/ws');
+
+    ws.onopen = () => {
+        document.getElementById('statusDot').classList.remove('paused');
+        document.getElementById('statusText').textContent = 'Connecté';
+    };
+
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'init' || data.type === 'update') {
+            if (data.stats) updateOverview(data.stats);
+            if (data.open_trades) updateOpenTrades(data.open_trades);
+            if (data.closed_trades) updateClosedTrades(data.closed_trades);
+            if (data.watchlist) updateWatchlist(data.watchlist);
+            if (data.scanner) updateScannerStats(data.scanner);
+            if (data.prices) currentPrices = data.prices;
+            if (data.alerts) addAlerts(data.alerts);
+        }
+    };
+
+    ws.onclose = () => {
+        document.getElementById('statusDot').classList.add('paused');
+        document.getElementById('statusText').textContent = 'Déconnecté — reconnexion...';
+        setTimeout(connect, 3000);
+    };
+}
+connect();
+</script>
+</body>
+</html>
