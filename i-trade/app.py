@@ -17,6 +17,7 @@ from config import Config
 from market_data import MarketData
 from paper_engine import PaperEngine, Strategy, Side
 from memecoin_scanner import MemecoinScanner
+from strategy_executor import StrategyExecutor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,6 +29,7 @@ logger = logging.getLogger("i-trade.app")
 market = MarketData()
 engine = PaperEngine()
 scanner = MemecoinScanner(market)
+executor = StrategyExecutor(engine, market, scanner)
 connected_ws: list[WebSocket] = []
 scan_task: asyncio.Task | None = None
 
@@ -62,6 +64,9 @@ async def scan_loop():
 
             # Run memecoin scanner
             new_alerts = await scanner.scan()
+
+            # Execute strategies (the brain)
+            await executor.execute()
 
             # Broadcast updates
             await broadcast({
