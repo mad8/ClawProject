@@ -18,6 +18,7 @@ from market_data import MarketData
 from paper_engine import PaperEngine, Strategy, Side
 from memecoin_scanner import MemecoinScanner
 from strategy_executor import StrategyExecutor
+from persistence import save_state, load_state
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,7 +51,9 @@ async def broadcast(data: dict):
 async def scan_loop():
     """Background loop: scan market, update trades, broadcast."""
     await asyncio.sleep(3)  # Wait for startup
+    load_state(engine)
     await scanner.initialize()
+    save_counter = 0
 
     while True:
         try:
@@ -80,6 +83,11 @@ async def scan_loop():
                 "timestamp": time.time(),
             })
 
+            # Save state every 4 cycles (~60s)
+            save_counter += 1
+            if save_counter % 4 == 0:
+                save_state(engine)
+
         except Exception as e:
             logger.error("Scan loop error: %s", e)
 
@@ -92,6 +100,8 @@ async def lifespan(app: FastAPI):
     scan_task = asyncio.create_task(scan_loop())
     logger.info("I-Trade started on %s:%d", Config.HOST, Config.PORT)
     yield
+    save_state(engine)
+    logger.info("State saved on shutdown")
     if scan_task:
         scan_task.cancel()
     await market.close()
