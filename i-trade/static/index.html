@@ -117,7 +117,7 @@
             .nav-tabs::-webkit-scrollbar { display: none; }
             .nav-tab { padding: 8px 14px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
             .nav-status { order: 2; font-size: 11px; }
-            .nav-status #statusText { display: none; }
+            .nav-status #statusText { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .page { padding: 12px; }
             .cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
             .card { padding: 12px; }
@@ -178,20 +178,20 @@
         <div class="card">
             <div class="card-label">PnL du jour</div>
             <div class="card-value" id="dailyPnl">$0.00</div>
-            <div class="card-sub">Limite: -$50/jour</div>
+            <div class="card-sub">Limite : -$50/jour</div>
         </div>
         <div class="card">
-            <div class="card-label">Win Rate</div>
+            <div class="card-label">Taux de réussite</div>
             <div class="card-value neutral" id="winRate">0%</div>
             <div class="card-sub" id="winRateSub">0 trades</div>
         </div>
         <div class="card">
-            <div class="card-label">Profit Factor</div>
+            <div class="card-label">Facteur de profit</div>
             <div class="card-value neutral" id="profitFactor">0</div>
-            <div class="card-sub">Objectif: > 1.5</div>
+            <div class="card-sub">Objectif : > 1.5</div>
         </div>
         <div class="card">
-            <div class="card-label">Drawdown</div>
+            <div class="card-label">Perte max consécutive</div>
             <div class="card-value" id="drawdown">$0.00</div>
             <div class="card-sub" id="drawdownSub">Max: $150</div>
         </div>
@@ -201,7 +201,7 @@
             <div class="card-sub" id="investedSub">$0 investis</div>
         </div>
         <div class="card">
-            <div class="card-label">Cash disponible</div>
+            <div class="card-label">Capital disponible</div>
             <div class="card-value" id="cashAvail">$1,000.00</div>
             <div class="card-sub" id="cashRatio">100% cash</div>
         </div>
@@ -245,7 +245,7 @@
         <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Prix actuel</th><th>Size</th><th>SL</th><th>TP</th><th>Trailing</th><th>PnL</th><th>Durée</th></tr>
+                <tr><th>ID</th><th>Jeton</th><th>Stratégie</th><th>Direction</th><th>Entrée</th><th>Prix actuel</th><th>Taille</th><th>Stop Loss</th><th>Objectifs</th><th>Trailing</th><th>Gains/Pertes</th><th>Durée</th></tr>
             </thead>
             <tbody id="openTradesBody">
                 <tr><td colspan="12" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>
@@ -262,7 +262,7 @@
         <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Sortie</th><th>PnL</th><th>PnL %</th><th>Raison</th></tr>
+                <tr><th>ID</th><th>Jeton</th><th>Stratégie</th><th>Direction</th><th>Entrée</th><th>Sortie</th><th>Gains/Pertes</th><th>G/P %</th><th>Raison</th></tr>
             </thead>
             <tbody id="closedTradesBody">
                 <tr><td colspan="9" style="color:#555;text-align:center;">Aucun trade clôturé</td></tr>
@@ -301,10 +301,10 @@
         <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>Coin</th><th>Score</th><th>Prix</th><th>Volume 24h</th><th>Vol. Ratio</th><th>Funding</th><th>Signaux</th><th>Red Flags</th><th>Détecté</th></tr>
+                <tr><th>Jeton</th><th>Score</th><th>Prix</th><th>Volume 24h</th><th>Ratio Vol.</th><th>Taux Financement</th><th>Signaux</th><th>Alertes Danger</th><th>Détecté</th></tr>
             </thead>
             <tbody id="watchlistBody">
-                <tr><td colspan="9" style="color:#555;text-align:center;">Scanner en cours d'initialisation...</td></tr>
+                <tr><td colspan="9" style="color:#555;text-align:center;">Scanner en cours de démarrage...</td></tr>
             </tbody>
         </table>
         </div>
@@ -320,7 +320,7 @@
         <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>Coin</th><th>Prix</th><th>Funding 8h</th><th>Annualisé</th><th>Volume 24h</th><th>Open Interest</th><th>Signal</th></tr>
+                <tr><th>Jeton</th><th>Prix</th><th>Taux 8h</th><th>Annualisé</th><th>Volume 24h</th><th>Intérêt Ouvert</th><th>Signal</th></tr>
             </thead>
             <tbody id="fundingBody">
                 <tr><td colspan="7" style="color:#555;text-align:center;">Chargement...</td></tr>
@@ -380,7 +380,7 @@ function openTradeModal(tradeId) {
     const exitDate = trade.exit_time ? new Date(trade.exit_time * 1000).toLocaleString('fr-FR') : '-';
 
     document.getElementById('tradeModalContent').innerHTML = `
-        <h2 style="color:#c9a227;margin-bottom:5px;">${trade.coin} — ${trade.side.toUpperCase()}</h2>
+        <h2 style="color:#c9a227;margin-bottom:5px;">${trade.coin} — ${trade.side === 'long' ? '🟢 ACHAT' : '🔴 VENTE'}</h2>
         <div style="color:#888;font-size:13px;margin-bottom:20px;">${stratName} | ID: ${trade.id}</div>
 
         <div style="margin-bottom:20px;">
@@ -390,67 +390,67 @@ function openTradeModal(tradeId) {
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
             <div style="background:#0d0d15;padding:12px;border-radius:8px;">
-                <div style="font-size:11px;color:#666;">Entrée</div>
+                <div style="font-size:11px;color:#666;">Prix d'entrée</div>
                 <div style="font-size:18px;font-weight:700;">$${trade.entry_price.toFixed(2)}</div>
                 <div style="font-size:11px;color:#555;">${entryDate}</div>
             </div>
             <div style="background:#0d0d15;padding:12px;border-radius:8px;">
-                <div style="font-size:11px;color:#666;">${trade.status === 'closed' ? 'Sortie' : 'Prix actuel'}</div>
+                <div style="font-size:11px;color:#666;">${trade.status === 'closed' ? 'Prix de sortie' : 'Prix actuel'}</div>
                 <div style="font-size:18px;font-weight:700;">$${(trade.status === 'closed' ? trade.exit_price : curPrice).toFixed(2)}</div>
                 <div style="font-size:11px;color:#555;">${trade.status === 'closed' ? exitDate : 'Live'}</div>
             </div>
             <div style="background:#0d0d15;padding:12px;border-radius:8px;">
-                <div style="font-size:11px;color:#666;">PnL</div>
+                <div style="font-size:11px;color:#666;">Gains / Pertes</div>
                 <div style="font-size:18px;font-weight:700;" class="${pnlClass(trade.status === 'closed' ? trade.pnl : pnl)}">${(trade.status === 'closed' ? trade.pnl : pnl) >= 0 ? '+' : ''}$${Math.abs(trade.status === 'closed' ? trade.pnl : pnl).toFixed(2)}</div>
                 <div style="font-size:11px;" class="${pnlClass(trade.status === 'closed' ? trade.pnl_pct : pnlPct)}">${(trade.status === 'closed' ? trade.pnl_pct : pnlPct).toFixed(1)}%</div>
             </div>
             <div style="background:#0d0d15;padding:12px;border-radius:8px;">
-                <div style="font-size:11px;color:#666;">Taille / Levier</div>
+                <div style="font-size:11px;color:#666;">Mise / Effet de levier</div>
                 <div style="font-size:18px;font-weight:700;">$${trade.size_usdc.toFixed(0)}</div>
-                <div style="font-size:11px;color:#555;">x${trade.leverage} | Restant: ${trade.remaining_size_pct}%</div>
+                <div style="font-size:11px;color:#555;">x${trade.leverage} | Encore en jeu: ${trade.remaining_size_pct}%</div>
             </div>
         </div>
 
         <div style="margin-bottom:20px;">
-            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🛡️ Gestion du risque</div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🛡️ Protection</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <div style="background:rgba(239,68,68,0.08);padding:10px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);">
-                    <div style="font-size:11px;color:#ef4444;">Stop Loss (-${trade.stop_loss_pct}%)</div>
+                    <div style="font-size:11px;color:#ef4444;">Limite de perte (-${trade.stop_loss_pct}%)</div>
                     <div style="font-size:16px;font-weight:700;color:#ef4444;">$${slPrice.toFixed(2)}</div>
                 </div>
                 <div style="background:rgba(201,162,39,0.08);padding:10px;border-radius:6px;border:1px solid rgba(201,162,39,0.2);">
-                    <div style="font-size:11px;color:#c9a227;">Trailing Stop</div>
-                    <div style="font-size:16px;font-weight:700;color:#c9a227;">${trade.trailing_stop_pct ? '-' + trade.trailing_stop_pct + '%' : 'Aucun'}</div>
-                    ${trade.highest_price ? '<div style="font-size:11px;color:#555;">Plus haut: $' + trade.highest_price.toFixed(2) + '</div>' : ''}
+                    <div style="font-size:11px;color:#c9a227;">Stop suiveur</div>
+                    <div style="font-size:16px;font-weight:700;color:#c9a227;">${trade.trailing_stop_pct ? '-' + trade.trailing_stop_pct + '% depuis le sommet' : 'Aucun'}</div>
+                    ${trade.highest_price ? '<div style="font-size:11px;color:#555;">Sommet atteint: $' + trade.highest_price.toFixed(2) + '</div>' : ''}
                 </div>
             </div>
         </div>
 
         <div style="margin-bottom:20px;">
-            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎯 Take Profit</div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎯 Objectifs de gains</div>
             <table style="width:100%;">
-                <thead><tr><th>Niveau</th><th>Prix</th><th>Action</th></tr></thead>
+                <thead><tr><th>Niveau</th><th>Prix cible</th><th>Action</th></tr></thead>
                 <tbody>${tpHtml}</tbody>
             </table>
         </div>
 
         ${partialsHtml ? `
         <div>
-            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">💰 Sorties partielles</div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">💰 Prises de gains effectuées</div>
             <table style="width:100%;">
-                <thead><tr><th>Niveau</th><th>Prix</th><th>PnL</th><th>Date</th></tr></thead>
+                <thead><tr><th>Niveau</th><th>Prix</th><th>Gains</th><th>Date</th></tr></thead>
                 <tbody>${partialsHtml}</tbody>
             </table>
         </div>` : ''}
 
         ${trade.status === 'closed' ? `
         <div style="margin-top:15px;padding:12px;background:rgba(239,68,68,0.08);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
-            <div style="font-size:12px;color:#888;">Raison de clôture</div>
-            <div style="font-size:16px;font-weight:700;color:#ef4444;">${trade.close_reason || '-'}</div>
+            <div style="font-size:12px;color:#888;">Raison de la fermeture</div>
+            <div style="font-size:16px;font-weight:700;color:#ef4444;">${{'take_profit':'✅ Objectif atteint','stop_loss':'🔴 Limite de perte','trailing_stop':'📉 Stop suiveur','timeout':'⏰ Délai dépassé','manual':'✋ Fermé manuellement','daily_limit':'⚠️ Limite journalière'}[trade.close_reason] || trade.close_reason || '-'}</div>
         </div>` : `
         <div style="margin-top:15px;padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;border:1px solid rgba(34,197,94,0.2);">
-            <div style="font-size:12px;color:#22c55e;">⏱️ Position ouverte depuis ${duration(trade.entry_time)}</div>
-            ${trade.max_duration_h ? '<div style="font-size:11px;color:#555;">Durée max: ' + trade.max_duration_h + 'h</div>' : ''}
+            <div style="font-size:12px;color:#22c55e;">⏱️ En cours depuis ${duration(trade.entry_time)}</div>
+            ${trade.max_duration_h ? '<div style="font-size:11px;color:#555;">Durée maximum: ' + trade.max_duration_h + 'h</div>' : ''}
         </div>`}
     `;
     document.getElementById('tradeModal').classList.add('active');
@@ -512,24 +512,24 @@ function updateOverview(stats) {
     daily.className = 'card-value ' + pnlClass(stats.daily_pnl_today);
 
     document.getElementById('winRate').textContent = stats.win_rate + '%';
-    document.getElementById('winRateSub').textContent = stats.closed_trades + ' trades clôturés';
+    document.getElementById('winRateSub').textContent = stats.closed_trades + ' trades fermés';
 
     document.getElementById('profitFactor').textContent = stats.profit_factor === Infinity ? '∞' : stats.profit_factor;
 
     const dd = document.getElementById('drawdown');
     dd.textContent = '$' + stats.drawdown.toFixed(2);
     dd.className = 'card-value ' + (stats.drawdown > 100 ? 'negative' : stats.drawdown > 50 ? 'neutral' : 'positive');
-    document.getElementById('drawdownSub').textContent = stats.drawdown_pct.toFixed(1) + '% | Max: $150';
+    document.getElementById('drawdownSub').textContent = stats.drawdown_pct.toFixed(1) + '% | Limite : $150';
 
     document.getElementById('openCount').textContent = stats.open_trades;
-    document.getElementById('investedSub').textContent = '$' + stats.total_invested.toFixed(0) + ' investis';
+    document.getElementById('investedSub').textContent = '$' + stats.total_invested.toFixed(0) + ' en jeu';
     document.getElementById('cashAvail').textContent = '$' + stats.cash_available.toFixed(2);
-    document.getElementById('cashRatio').textContent = stats.cash_ratio + '% cash';
+    document.getElementById('cashRatio').textContent = stats.cash_ratio + '% disponible';
 
     const dot = document.getElementById('statusDot');
     const txt = document.getElementById('statusText');
     if (stats.paused) { dot.classList.add('paused'); txt.textContent = stats.pause_reason; }
-    else { dot.classList.remove('paused'); txt.textContent = 'Actif — Paper Trading'; }
+    else { dot.classList.remove('paused'); txt.textContent = 'Actif — Simulation'; }
 
     // Strategy breakdown
     const sb = stats.strategy_breakdown || {};
@@ -540,7 +540,7 @@ function updateOverview(stats) {
             el.textContent = (data.pnl >= 0 ? '+$' : '-$') + Math.abs(data.pnl).toFixed(2);
             el.className = 'breakdown-value ' + pnlClass(data.pnl);
         }
-        if (sub) sub.textContent = data.trades + ' trades | WR: ' + data.win_rate + '%';
+        if (sub) sub.textContent = data.trades + ' trades | Réussite: ' + data.win_rate + '%';
     }
 }
 
@@ -568,14 +568,14 @@ function updateOpenTrades(trades) {
         }).join('<br>') || '-';
 
         const trailDisplay = t.trailing_stop_pct
-            ? `-${t.trailing_stop_pct}%<br><small>High: $${(t.highest_price || t.entry_price).toFixed(2)}</small>`
+            ? `-${t.trailing_stop_pct}%<br><small>Sommet: $${(t.highest_price || t.entry_price).toFixed(2)}</small>`
             : '-';
 
         return `<tr onclick="openTradeModal('${t.id}')" style="cursor:pointer;">
             <td>${t.id}</td>
             <td><strong>${t.coin}</strong></td>
             <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
-            <td>${t.side.toUpperCase()}</td>
+            <td>${t.side === 'long' ? '🟢 ACHAT' : '🔴 VENTE'}</td>
             <td>$${t.entry_price.toFixed(2)}</td>
             <td>$${curPrice.toFixed(2)}</td>
             <td>$${t.size_usdc.toFixed(0)}</td>
@@ -599,12 +599,12 @@ function updateClosedTrades(trades) {
         <td>${t.id}</td>
         <td><strong>${t.coin}</strong></td>
         <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
-        <td>${t.side.toUpperCase()}</td>
+        <td>${t.side === 'long' ? '🟢 ACHAT' : '🔴 VENTE'}</td>
         <td>$${t.entry_price.toFixed(4)}</td>
         <td>$${t.exit_price.toFixed(4)}</td>
         <td class="${pnlClass(t.pnl)}">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</td>
         <td class="${pnlClass(t.pnl_pct)}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct.toFixed(1)}%</td>
-        <td>${t.close_reason || '-'}</td>
+        <td>${{'take_profit':'✅ Objectif atteint','stop_loss':'🔴 Stop Loss','trailing_stop':'📉 Trailing Stop','timeout':'⏰ Délai dépassé','manual':'✋ Manuel','daily_limit':'⚠️ Limite jour'}[t.close_reason] || t.close_reason || '-'}</td>
     </tr>`).join('');
 }
 
@@ -668,7 +668,7 @@ async function loadFunding() {
         body.innerHTML = data.map(r => {
             const ann = r.funding_annualized.toFixed(0);
             const signal = Math.abs(r.funding_annualized) > 50
-                ? (r.funding_annualized > 0 ? '🔴 SHORT' : '🟢 LONG')
+                ? (r.funding_annualized > 0 ? '🔴 VENDRE' : '🟢 ACHETER')
                 : '-';
             return `<tr>
                 <td><strong>${r.coin}</strong></td>
