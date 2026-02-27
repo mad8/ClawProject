@@ -233,10 +233,10 @@
         <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Prix actuel</th><th>Size</th><th>PnL</th><th>Durée</th></tr>
+                <tr><th>ID</th><th>Coin</th><th>Stratégie</th><th>Side</th><th>Entrée</th><th>Prix actuel</th><th>Size</th><th>SL</th><th>TP</th><th>Trailing</th><th>PnL</th><th>Durée</th></tr>
             </thead>
             <tbody id="openTradesBody">
-                <tr><td colspan="9" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>
+                <tr><td colspan="12" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>
             </tbody>
         </table>
         </div>
@@ -404,7 +404,7 @@ function updateOpenTrades(trades) {
     const body = document.getElementById('openTradesBody');
     document.getElementById('openBadge').textContent = trades.length;
     if (!trades.length) {
-        body.innerHTML = '<tr><td colspan="9" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>';
+        body.innerHTML = '<tr><td colspan="12" style="color:#555;text-align:center;">Aucune position ouverte</td></tr>';
         return;
     }
     body.innerHTML = trades.map(t => {
@@ -413,15 +413,32 @@ function updateOpenTrades(trades) {
             ? ((curPrice - t.entry_price) / t.entry_price * 100)
             : ((t.entry_price - curPrice) / t.entry_price * 100);
         const pnl = t.size_usdc * (t.remaining_size_pct/100) * (pnlPct/100);
+
+        const slPrice = t.side === 'long'
+            ? t.entry_price * (1 - t.stop_loss_pct / 100)
+            : t.entry_price * (1 + t.stop_loss_pct / 100);
+
+        const tpDisplay = (t.take_profit_levels || []).map(tp => {
+            const icon = tp.triggered ? '✅' : '⏳';
+            return `${icon} +${tp.pct}% → ${tp.close_pct}%`;
+        }).join('<br>') || '-';
+
+        const trailDisplay = t.trailing_stop_pct
+            ? `-${t.trailing_stop_pct}%<br><small>High: $${(t.highest_price || t.entry_price).toFixed(2)}</small>`
+            : '-';
+
         return `<tr>
             <td>${t.id}</td>
             <td><strong>${t.coin}</strong></td>
             <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
             <td>${t.side.toUpperCase()}</td>
-            <td>$${t.entry_price.toFixed(4)}</td>
-            <td>$${curPrice.toFixed(4)}</td>
+            <td>$${t.entry_price.toFixed(2)}</td>
+            <td>$${curPrice.toFixed(2)}</td>
             <td>$${t.size_usdc.toFixed(0)}</td>
-            <td class="${pnlClass(pnl)}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct.toFixed(1)}%)</td>
+            <td class="negative">$${slPrice.toFixed(2)}<br><small>-${t.stop_loss_pct}%</small></td>
+            <td style="font-size:11px;">${tpDisplay}</td>
+            <td style="font-size:11px;">${trailDisplay}</td>
+            <td class="${pnlClass(pnl)}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}<br><small>${pnlPct.toFixed(1)}%</small></td>
             <td>${duration(t.entry_time)}</td>
         </tr>`;
     }).join('');
