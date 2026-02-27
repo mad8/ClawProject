@@ -85,6 +85,18 @@
         .alert-item.blocked { border-left-color: #c9a227; }
         .alert-time { font-size: 11px; color: #555; }
 
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: #13131d; border: 1px solid #1e1e2e; border-radius: 12px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; }
+        .modal .close { position: absolute; top: 12px; right: 16px; color: #666; font-size: 24px; cursor: pointer; background: none; border: none; }
+        .modal .close:hover { color: #fff; }
+        .modal h2 { font-size: 22px; }
+        @media (max-width: 768px) {
+            .modal { padding: 20px 15px; max-height: 85vh; }
+            .modal h2 { font-size: 18px; }
+        }
+
         /* Table responsive */
         .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .table-wrap table { min-width: 700px; }
@@ -318,7 +330,139 @@
     </div>
 </div>
 
+<!-- Trade Detail Modal -->
+<div class="modal-overlay" id="tradeModal">
+    <div class="modal">
+        <button class="close" onclick="closeTradeModal()">&times;</button>
+        <div id="tradeModalContent"></div>
+    </div>
+</div>
+
 <script>
+// ── Trade Modal ────────────────────────────────────────────────
+let allTradesData = [];
+
+function openTradeModal(tradeId) {
+    const trade = allTradesData.find(t => t.id === tradeId);
+    if (!trade) return;
+
+    const curPrice = currentPrices[trade.coin] || trade.entry_price;
+    const pnlPct = trade.side === 'long'
+        ? ((curPrice - trade.entry_price) / trade.entry_price * 100)
+        : ((trade.entry_price - curPrice) / trade.entry_price * 100);
+    const pnl = trade.size_usdc * (trade.remaining_size_pct / 100) * (pnlPct / 100);
+
+    const slPrice = trade.side === 'long'
+        ? trade.entry_price * (1 - trade.stop_loss_pct / 100)
+        : trade.entry_price * (1 + trade.stop_loss_pct / 100);
+
+    const stratNames = { momentum: '🔵 Momentum Breakout', memecoin: '🟣 Memecoin / Smart Money', funding: '🟢 Funding Arbitrage' };
+    const stratName = stratNames[trade.strategy] || trade.strategy;
+
+    const signalsHtml = (trade.signals || []).map(s =>
+        `<div style="padding:8px 12px;margin:4px 0;background:rgba(201,162,39,0.08);border-left:3px solid #c9a227;border-radius:0 6px 6px 0;font-size:13px;">${s}</div>`
+    ).join('') || '<div style="color:#555;">Aucun signal enregistré</div>';
+
+    const tpHtml = (trade.take_profit_levels || []).map(tp => {
+        const tpPrice = trade.side === 'long'
+            ? trade.entry_price * (1 + tp.pct / 100)
+            : trade.entry_price * (1 - tp.pct / 100);
+        const icon = tp.triggered ? '✅' : '⏳';
+        return `<tr><td>${icon} +${tp.pct}%</td><td>$${tpPrice.toFixed(2)}</td><td>Ferme ${tp.close_pct}%</td></tr>`;
+    }).join('') || '<tr><td colspan="3" style="color:#555;">Aucun</td></tr>';
+
+    const partialsHtml = (trade.partial_exits || []).map(p => {
+        const time = new Date(p.time * 1000).toLocaleString('fr-FR');
+        return `<tr><td>+${p.pct}%</td><td>$${p.price.toFixed(2)}</td><td class="${pnlClass(p.pnl)}">$${p.pnl.toFixed(2)}</td><td>${time}</td></tr>`;
+    }).join('');
+
+    const entryDate = new Date(trade.entry_time * 1000).toLocaleString('fr-FR');
+    const exitDate = trade.exit_time ? new Date(trade.exit_time * 1000).toLocaleString('fr-FR') : '-';
+
+    document.getElementById('tradeModalContent').innerHTML = `
+        <h2 style="color:#c9a227;margin-bottom:5px;">${trade.coin} — ${trade.side.toUpperCase()}</h2>
+        <div style="color:#888;font-size:13px;margin-bottom:20px;">${stratName} | ID: ${trade.id}</div>
+
+        <div style="margin-bottom:20px;">
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🧠 Pourquoi ce trade ?</div>
+            ${signalsHtml}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+            <div style="background:#0d0d15;padding:12px;border-radius:8px;">
+                <div style="font-size:11px;color:#666;">Entrée</div>
+                <div style="font-size:18px;font-weight:700;">$${trade.entry_price.toFixed(2)}</div>
+                <div style="font-size:11px;color:#555;">${entryDate}</div>
+            </div>
+            <div style="background:#0d0d15;padding:12px;border-radius:8px;">
+                <div style="font-size:11px;color:#666;">${trade.status === 'closed' ? 'Sortie' : 'Prix actuel'}</div>
+                <div style="font-size:18px;font-weight:700;">$${(trade.status === 'closed' ? trade.exit_price : curPrice).toFixed(2)}</div>
+                <div style="font-size:11px;color:#555;">${trade.status === 'closed' ? exitDate : 'Live'}</div>
+            </div>
+            <div style="background:#0d0d15;padding:12px;border-radius:8px;">
+                <div style="font-size:11px;color:#666;">PnL</div>
+                <div style="font-size:18px;font-weight:700;" class="${pnlClass(trade.status === 'closed' ? trade.pnl : pnl)}">${(trade.status === 'closed' ? trade.pnl : pnl) >= 0 ? '+' : ''}$${Math.abs(trade.status === 'closed' ? trade.pnl : pnl).toFixed(2)}</div>
+                <div style="font-size:11px;" class="${pnlClass(trade.status === 'closed' ? trade.pnl_pct : pnlPct)}">${(trade.status === 'closed' ? trade.pnl_pct : pnlPct).toFixed(1)}%</div>
+            </div>
+            <div style="background:#0d0d15;padding:12px;border-radius:8px;">
+                <div style="font-size:11px;color:#666;">Taille / Levier</div>
+                <div style="font-size:18px;font-weight:700;">$${trade.size_usdc.toFixed(0)}</div>
+                <div style="font-size:11px;color:#555;">x${trade.leverage} | Restant: ${trade.remaining_size_pct}%</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🛡️ Gestion du risque</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div style="background:rgba(239,68,68,0.08);padding:10px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);">
+                    <div style="font-size:11px;color:#ef4444;">Stop Loss (-${trade.stop_loss_pct}%)</div>
+                    <div style="font-size:16px;font-weight:700;color:#ef4444;">$${slPrice.toFixed(2)}</div>
+                </div>
+                <div style="background:rgba(201,162,39,0.08);padding:10px;border-radius:6px;border:1px solid rgba(201,162,39,0.2);">
+                    <div style="font-size:11px;color:#c9a227;">Trailing Stop</div>
+                    <div style="font-size:16px;font-weight:700;color:#c9a227;">${trade.trailing_stop_pct ? '-' + trade.trailing_stop_pct + '%' : 'Aucun'}</div>
+                    ${trade.highest_price ? '<div style="font-size:11px;color:#555;">Plus haut: $' + trade.highest_price.toFixed(2) + '</div>' : ''}
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎯 Take Profit</div>
+            <table style="width:100%;">
+                <thead><tr><th>Niveau</th><th>Prix</th><th>Action</th></tr></thead>
+                <tbody>${tpHtml}</tbody>
+            </table>
+        </div>
+
+        ${partialsHtml ? `
+        <div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">💰 Sorties partielles</div>
+            <table style="width:100%;">
+                <thead><tr><th>Niveau</th><th>Prix</th><th>PnL</th><th>Date</th></tr></thead>
+                <tbody>${partialsHtml}</tbody>
+            </table>
+        </div>` : ''}
+
+        ${trade.status === 'closed' ? `
+        <div style="margin-top:15px;padding:12px;background:rgba(239,68,68,0.08);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
+            <div style="font-size:12px;color:#888;">Raison de clôture</div>
+            <div style="font-size:16px;font-weight:700;color:#ef4444;">${trade.close_reason || '-'}</div>
+        </div>` : `
+        <div style="margin-top:15px;padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;border:1px solid rgba(34,197,94,0.2);">
+            <div style="font-size:12px;color:#22c55e;">⏱️ Position ouverte depuis ${duration(trade.entry_time)}</div>
+            ${trade.max_duration_h ? '<div style="font-size:11px;color:#555;">Durée max: ' + trade.max_duration_h + 'h</div>' : ''}
+        </div>`}
+    `;
+    document.getElementById('tradeModal').classList.add('active');
+}
+
+function closeTradeModal() {
+    document.getElementById('tradeModal').classList.remove('active');
+}
+document.getElementById('tradeModal').addEventListener('click', function(e) {
+    if (e.target === this) closeTradeModal();
+});
+
 // ── Tab switching ──────────────────────────────────────────────
 function switchTab(tab) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -427,7 +571,7 @@ function updateOpenTrades(trades) {
             ? `-${t.trailing_stop_pct}%<br><small>High: $${(t.highest_price || t.entry_price).toFixed(2)}</small>`
             : '-';
 
-        return `<tr>
+        return `<tr onclick="openTradeModal('${t.id}')" style="cursor:pointer;">
             <td>${t.id}</td>
             <td><strong>${t.coin}</strong></td>
             <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
@@ -451,7 +595,7 @@ function updateClosedTrades(trades) {
         body.innerHTML = '<tr><td colspan="9" style="color:#555;text-align:center;">Aucun trade clôturé</td></tr>';
         return;
     }
-    body.innerHTML = trades.slice().reverse().map(t => `<tr>
+    body.innerHTML = trades.slice().reverse().map(t => `<tr onclick="openTradeModal('${t.id}')" style="cursor:pointer;">
         <td>${t.id}</td>
         <td><strong>${t.coin}</strong></td>
         <td><span class="${stratClass(t.strategy)}">${t.strategy}</span></td>
@@ -554,8 +698,8 @@ function connect() {
         const data = JSON.parse(e.data);
         if (data.type === 'init' || data.type === 'update') {
             if (data.stats) updateOverview(data.stats);
-            if (data.open_trades) updateOpenTrades(data.open_trades);
-            if (data.closed_trades) updateClosedTrades(data.closed_trades);
+            if (data.open_trades) { updateOpenTrades(data.open_trades); allTradesData = [...data.open_trades, ...allTradesData.filter(t => t.status === 'closed')]; }
+            if (data.closed_trades) { updateClosedTrades(data.closed_trades); allTradesData = [...allTradesData.filter(t => t.status === 'open'), ...data.closed_trades]; }
             if (data.watchlist) updateWatchlist(data.watchlist);
             if (data.scanner) updateScannerStats(data.scanner);
             if (data.prices) currentPrices = data.prices;
